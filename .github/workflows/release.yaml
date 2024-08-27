@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*.*
+
+jobs:
+  CI:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish Docker
+        if: matrix.runner == 'ubuntu-latest'
+        env:
+          DOCKER_PUSH: true
+          DOCKER_REPOSITORY: ghcr.io/jarvis-u/config-server-ui
+          DOCKER_TAG: ${{ github.ref_name }}
+        run: |
+          # Build Docker image
+          docker build -t $DOCKER_REPOSITORY:$DOCKER_TAG -f Dockerfile .
+          # Push Docker image
+          docker push $DOCKER_REPOSITORY:$DOCKER_TAG:$DOCKER_TAG
+  result:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [ CI ]
+    steps:
+      - name: Build Result
+        run: echo "Just to make the GitHub merge button green"
